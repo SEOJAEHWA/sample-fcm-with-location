@@ -6,14 +6,12 @@ import android.content.Intent
 import android.location.Location
 import android.os.Handler
 import android.os.Message
-import com.orhanobut.logger.Logger
 
 class LocationReceiver(
     private val handler: Handler
 ) : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val location = intent.getParcelableExtra<Location>(LocationUpdatesService.EXTRA_LOCATION)
-        Logger.d(Utils.getLocationText(location))
         handler.sendMessage(Message().apply {
             what = HANDLER_MSG_LOCATION
             obj = location

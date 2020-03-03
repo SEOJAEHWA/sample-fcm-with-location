@@ -9,6 +9,7 @@ import java.util.*
 object Utils {
 
     const val KEY_REQUESTING_LOCATION_UPDATES = "requesting_location_updates"
+    private const val KEY_PREV_GEO_HASH = "previous_geo_hash"
 
     fun requestingLocationUpdates(context: Context): Boolean =
         PreferenceManager.getDefaultSharedPreferences(context)
@@ -27,4 +28,14 @@ object Utils {
         R.string.location_updated,
         DateFormat.getDateTimeInstance().format(Date())
     )
+
+    fun getPrevGeoHash(context: Context): String =
+        PreferenceManager.getDefaultSharedPreferences(context)
+            .getString(KEY_PREV_GEO_HASH, "")!!
+
+    fun savePrevGeoHash(context: Context, geoHash: String) =
+        with(PreferenceManager.getDefaultSharedPreferences(context).edit()) {
+            putString(KEY_PREV_GEO_HASH, geoHash)
+            apply()
+        }
 }

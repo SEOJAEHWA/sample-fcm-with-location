@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "999101299620",
+    "firebase_url": "https://test-fcmtopic.firebaseio.com",
+    "project_id": "test-fcmtopic",
+    "storage_bucket": "test-fcmtopic.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:999101299620:android:ddbd0fa621281354d6df31",
+        "android_client_info": {
+          "package_name": "kr.co.aiblab.test.fcmtopicwithlocation"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "999101299620-hs8va0qk522fkkeung84fqvinl44t1eg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBmB6syTR6dWARWFautWr8UQla55Wq6Ivw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "999101299620-hs8va0qk522fkkeung84fqvinl44t1eg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

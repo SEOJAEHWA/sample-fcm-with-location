@@ -6,10 +6,13 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.location.Location
 import android.os.*
+import android.text.TextUtils
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.fonfon.kgeohash.GeoHash
 import com.google.android.gms.location.*
+import com.google.firebase.messaging.FirebaseMessaging
 import com.orhanobut.logger.Logger
 
 
@@ -41,15 +44,7 @@ class LocationUpdatesService : Service() {
         handler = Handler(handlerThread.looper)
 
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            notificationManager.createNotificationChannel(
-                NotificationChannel(
-                    CHANNEL_ID,
-                    getString(R.string.app_name),
-                    NotificationManager.IMPORTANCE_DEFAULT
-                )
-            )
-        }
+        createNotificationChannels(notificationManager)
     }
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
@@ -134,9 +129,39 @@ class LocationUpdatesService : Service() {
         LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intent)
 
         // TODO goHash 값을 얻어오고 topic 을 구독, 해제 처리 함
+        subscribeTopicUpdates(location)
 
         if (serviceIsRunningInForeground(this)) {
             notificationManager.notify(NOTIFICATION_ID, getNotification())
+        }
+    }
+
+    private fun subscribeTopicUpdates(location: Location) {
+        val geoHash = GeoHash(location, 4).toString()
+        val prevGeoHash = Utils.getPrevGeoHash(this)
+
+        if (!TextUtils.equals(geoHash, prevGeoHash)) {
+            Utils.savePrevGeoHash(this, geoHash)
+            with(FirebaseMessaging.getInstance()) {
+                if (!TextUtils.isEmpty(prevGeoHash)) {
+                    unsubscribeFromTopic(prevGeoHash).addOnCompleteListener {
+                        if (it.isSuccessful) {
+                            Logger.d("--- $prevGeoHash topic is unsubscribed.")
+                        } else {
+                            Logger.w("--- $prevGeoHash topic unsubscribing failed!", it.exception)
+                        }
+                    }
+                }
+                subscribeToTopic(geoHash).addOnCompleteListener {
+                    if (it.isSuccessful) {
+                        Logger.d("+++ $geoHash topic is subscribed.")
+                    } else {
+                        Logger.w("+++ $geoHash topic subscribing failed!", it.exception)
+                    }
+                }
+            }
+        } else {
+//            Logger.i("Same as saved geoHash. Nothing to do!")
         }
     }
 
@@ -171,6 +196,7 @@ class LocationUpdatesService : Service() {
                 getString(R.string.remove_location_updates),
                 servicePendingIntent
             )
+            setDefaults(NotificationCompat.DEFAULT_SOUND or NotificationCompat.DEFAULT_LIGHTS)
             setContentText(text)
             setContentTitle(Utils.getLocationTitle(this@LocationUpdatesService))
             setOngoing(true)
@@ -182,6 +208,32 @@ class LocationUpdatesService : Service() {
 //                setChannelId(CHANNEL_ID)
 //            }
         }.build()
+    }
+
+    private fun createNotificationChannels(manager: NotificationManager) {
+        // FIXME notification 처리를 도와주는 helper class 를 만들어 기능 분리 필요
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val locationNotificationChannel = NotificationChannel(
+                CHANNEL_ID,
+                getString(R.string.app_name),
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                enableVibration(false)
+            }
+            val fcmNotificationChannel = NotificationChannel(
+                getString(R.string.default_notification_channel_id),
+                getString(R.string.default_notification_channel_name),
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                enableVibration(true)
+            }
+            manager.createNotificationChannels(
+                listOf(
+                    locationNotificationChannel,
+                    fcmNotificationChannel
+                )
+            )
+        }
     }
 
     private fun createLocationRequest() {
@@ -226,7 +278,7 @@ class LocationUpdatesService : Service() {
         private const val PACKAGE_NAME = "kr.co.aiblab.test.fcmtopicwithlocation"
         const val ACTION_BROADCAST = "$PACKAGE_NAME.broadcast"
         const val EXTRA_LOCATION = "$PACKAGE_NAME.location"
-        private const val UPDATE_INTERVAL_IN_MILLISECONDS: Long = 10000
+        private const val UPDATE_INTERVAL_IN_MILLISECONDS: Long = 20000
         private const val FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS =
             UPDATE_INTERVAL_IN_MILLISECONDS / 2
         private const val CHANNEL_ID = "channel_01"
